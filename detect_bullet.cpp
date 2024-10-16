@@ -14,8 +14,8 @@ const uint8_t DIFF_STEP = 5;  //颜色差异的步长
 const uint8_t DIFF_THRESHOLD = 30;  //颜色差异的阈值
 const cv::Size KERNEL1_SIZE = cv::Size(10, 10);  //膨胀运算核大小
 const cv::Size KERNEL2_SIZE = cv::Size(4, 4); //开运算核大小
-const cv::Scalar COLOR_LOWB = cv::Scalar(25, 40, 40); //颜色范围的下限  //红色
-const cv::Scalar COLOR_UPB = cv::Scalar(90, 255, 255); //颜色范围的上限
+const cv::Scalar COLOR_LOWB = cv::Scalar(25, 40, 40); //颜色范围的下限  //棕色
+const cv::Scalar COLOR_UPB = cv::Scalar(90, 255, 255); //颜色范围的上限  //青绿色
 const cv::Scalar MIN_VUE = cv::Scalar(0, 255 * .1, 255 * .2); //最小的视觉亮度
 
 // 测试如果一个轮廓中某个像素满足 test_is_bullet_color，那么这个就是弹丸
@@ -95,21 +95,21 @@ void DetectBullet::get_possible() {
     cv::inRange(this->cur_hsv, COLOR_LOWB, COLOR_UPB, res);
     // 不能太黑
     cv::inRange(this->cur_hsv, MIN_VUE, cv::Scalar(255, 255, 255), msk_not_dark);
-    res &= msk_not_dark;
+    res &= msk_not_dark;   //做交集获取结果，即弹丸可能的位置
     // cv::Mat tmp1 = res.clone();
 
     // 根据 hsv 作帧差
-    cv::Mat mat_diff = this->do_diff.get_diff(this->cur_hsv, lst_reproj, res, this->lst_msk);
+    cv::Mat mat_diff = this->do_diff.get_diff(this->cur_hsv, lst_reproj, res, this->lst_msk);   //这里的res可能区域用作参考
     // 如果上一帧某个位置有弹丸，需要考虑这一帧某颗弹丸跑到了同样的位置上
-    res &= mat_diff;
+    res &= mat_diff;  //可能区域和帧差做交集
 
     // cv::Mat show_mat = res + (tmp1 - res) * .5;
     // cv::imshow("show_mat", show_mat);
 
     // 进行滤波
-    cv::morphologyEx(res, res, cv::MORPH_OPEN, this->kernel2);
+    cv::morphologyEx(res, res, cv::MORPH_OPEN, this->kernel2);  //进行开运算
 
-    tme_get_possible += (double)clock() / CLOCKS_PER_SEC;
+    tme_get_possible += (double)clock() / CLOCKS_PER_SEC;  //获取get_possible的运行时间
 
     // 寻找轮廓
     tme_find_contours -= (double)clock() / CLOCKS_PER_SEC;
@@ -117,7 +117,7 @@ void DetectBullet::get_possible() {
     cv::findContours(res, this->contours, hierarchy, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_NONE);
     tme_find_contours += (double)clock() / CLOCKS_PER_SEC;
     for (const cv::Vec4i& vc: hierarchy) {
-        if (~vc[3]) {
+        if (~vc[3]) {  //检查是否有父轮廓
             // std::cerr << "Nested contours!" << std::endl;
         }
     }
