@@ -19,12 +19,12 @@ const cv::Scalar COLOR_UPB = cv::Scalar(90, 255, 255); //颜色范围的上限  
 const cv::Scalar MIN_VUE = cv::Scalar(0, 255 * .1, 255 * .2); //最小的视觉亮度
 
 // 测试如果一个轮廓中某个像素满足 test_is_bullet_color，那么这个就是弹丸
-bool test_is_bullet_color(const cv::Vec3b& hsv_col) { // H代表色相，S代表饱和度，V代表亮度
+bool test_is_bullet_color(const cv::Vec3b& hsv_col) { // H代表色相，S代表饱和度，V代表亮度,根据hsv的值判断是否为弹丸
     return hsv_col[2] > 50  //饱和度大于50
         && fabs((int)hsv_col[0] - 50) < 10 + .5 * exp((hsv_col[1] + hsv_col[2]) / 100);
 }
-// 做帧差（并与原来的取交）
-cv::Mat DoFrameDifference::get_diff(
+
+cv::Mat DoFrameDifference::get_diff(// 做帧差（并与原来的取交）（可获取弹道轨迹）
     const cv::Mat& s1,
     const cv::Mat& s2,
     const cv::Mat& ref,
@@ -123,27 +123,29 @@ void DetectBullet::get_possible() {
     }
 }
 
-void DetectBullet::sort_points(std::vector<cv::Point>& vec) {
+void DetectBullet::sort_points(std::vector<cv::Point>& vec) { // 对点进行排序，会返回排序好的vec
     tme_sort_points -= (double)clock() / CLOCKS_PER_SEC;
 
     if (this->sort_pts.empty()) {
         // 如果 sort_pts 没有初始化，那么先初始化
-        this->sort_pts = std::vector<std::vector<uint32_t>>(this->cur_frame.cols);
+        this->sort_pts = std::vector<std::vector<uint32_t>>(this->cur_frame.cols);// 二维vector数组，大小为当前图像的列
     }
 
     uint32_t mn_x = this->cur_frame.cols, mx_x = 0;
-    for (const cv::Point& pt: vec) {
-        uint32_t x = pt.x, y = pt.y;
-        this->sort_pts[x].emplace_back(y);
+    // 计算 vec 中所有点的 x 坐标范围
+    // 物理意义：遍历图像的所有点，将x坐标相同的点存入sort_pts的x行中，并对y值排序
+    for (const cv::Point& pt: vec) {  // 遍历vec中所有点
+        uint32_t x = pt.x, y = pt.y;    // 赋值给临时变量
+        this->sort_pts[x].emplace_back(y);  // 将y值存入二维vector数组的x行中
         if (x < mn_x)
-            mn_x = x;
+            mn_x = x; // 记录最小的x
         if (x > mx_x)
-            mx_x = x;
+            mx_x = x;  // 记录最大的x
     }
-    std::vector<cv::Point>().swap(vec);
-    for (uint32_t x = mn_x; x <= mx_x; ++x) {
-        std::vector<uint32_t>& vc_x = this->sort_pts[x];
-        if (vc_x.size() > 10) {
+    std::vector<cv::Point>().swap(vec); // 清空vec的内存
+    for (uint32_t x = mn_x; x <= mx_x; ++x) {// 遍历minx到maxx的点
+        std::vector<uint32_t>& vc_x = this->sort_pts[x];  // 提取sort_pts的x行存入vc_x中
+        if (vc_x.size() > 10) { // 如果vc_x的长度大于10，则使用sort函数，否则使用冒泡排序
             sort(vc_x.begin(), vc_x.end());
         } else {
             for (uint32_t i = 0; i < vc_x.size(); ++i) {
@@ -154,24 +156,24 @@ void DetectBullet::sort_points(std::vector<cv::Point>& vec) {
             }
         }
         for (uint32_t y: vc_x) {
-            vec.emplace_back(x, y);
+            vec.emplace_back(x, y);  // 将vc_x（排序好的）的值存入vec的x行中
         }
-        std::vector<uint32_t>().swap(vc_x);
+        std::vector<uint32_t>().swap(vc_x); // 清空vc_x的内存
     }
 
     tme_sort_points += (double)clock() / CLOCKS_PER_SEC;
 }
 
 // 找出一个轮廓中最亮的部分
-bool DetectBullet::test_is_bullet(std::vector<cv::Point> contour) {
-    this->sort_points(contour);
+bool DetectBullet::test_is_bullet(std::vector<cv::Point> contour) {  //输入一个点集
+    this->sort_points(contour); //对轮廓内的点进行排序
     tme_get_brightest -= (double)clock() / CLOCKS_PER_SEC;
 
     this->sort_points(contour);
     bool flag = false;
 
     for (uint32_t i = 0, j = 0; i < contour.size() && !flag; i = j) {
-        int x = contour[i].x;
+        int x = contour[i].x;//获取
         while (j < contour.size() && x == contour[j].x)
             ++j;
         assert(i < j);
