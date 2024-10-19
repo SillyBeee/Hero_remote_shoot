@@ -8,10 +8,10 @@
 #include "do_reproj.hpp"
 
 namespace aimer::aim {
-class ImageBullet {
+class ImageBullet {  
   public:
-    cv::Point2f center;
-    float radius;
+    cv::Point2f center;  //子弹中心在图像中的坐标
+    float radius;  //子弹半径
 
     ImageBullet() {}
     //构造函数
@@ -43,7 +43,7 @@ class DoFrameDifference {
 };
 
 class DetectBullet {  // 用于检测子弹
-    cv::Mat lst_frame, cur_frame;
+    cv::Mat lst_frame, cur_frame; //上一帧和当前帧的图像
     Eigen::Quaterniond lst_fr_q, cur_fr_q;  // 上一帧和当前帧的相机姿态
     cv::Mat cur_hsv;  // 当前帧的 HSV
     cv::Mat lst_hsv;  // 上一帧的 HSV

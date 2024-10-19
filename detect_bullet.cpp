@@ -81,7 +81,7 @@ DetectBullet::DetectBullet(const DoReproj& do_reproj) {
     this->init(do_reproj);
 }
 
-// 找出可能是子弹的区域
+// 找出可能是子弹的区域（调用了帧差和重投影） 
 void DetectBullet::get_possible() {
     tme_get_possible -= (double)clock() / CLOCKS_PER_SEC;  //
 
@@ -189,24 +189,24 @@ bool DetectBullet::test_is_bullet(std::vector<cv::Point> contour) {  //输入一
 
 // 获取子弹位置、半径
 void DetectBullet::get_bullets() {
-    bullets.clear();
-    this->lst_msk = cv::Mat::zeros(this->cur_frame.rows, this->cur_frame.cols, CV_8U);
+    bullets.clear();  //清空子弹vector
+    this->lst_msk = cv::Mat::zeros(this->cur_frame.rows, this->cur_frame.cols, CV_8U); //根据当前帧大小初始化一个全黑图像
 
     // std::cerr << "contours size = " << this->contours.size() << std::endl;
-    for (uint32_t i = 0; i < this->contours.size(); ++i) {
-        const std::vector<cv::Point>& contour = this->contours[i];
-        cv::RotatedRect rect = cv::minAreaRect(contour);
+    for (uint32_t i = 0; i < this->contours.size(); ++i) { //遍历所有轮廓
+        const std::vector<cv::Point>& contour = this->contours[i];  //
+        cv::RotatedRect rect = cv::minAreaRect(contour); // 获取最小外接矩形
         cv::Size rect_size = rect.size;
-        if (rect_size.area() < 30)
+        if (rect_size.area() < 30)  //如果太小，则排除掉
             continue;
-        double ratio = cv::contourArea(contour) / rect_size.area();
-        if (ratio < 0.5)
+        double ratio = cv::contourArea(contour) / rect_size.area(); 
+        if (ratio < 0.5) //如果轮廓面积与最小外接矩形面积之比小于0.5，即形状不符合则排除掉
             continue;
-        if (this->test_is_bullet(contour)) {
-            this->bullets.emplace_back(
+        if (this->test_is_bullet(contour)) {// 判断是否是子弹
+            this->bullets.emplace_back( 
                 rect.center,
-                std::min(rect_size.height, rect_size.width) * .5);
-            cv::drawContours(
+                std::min(rect_size.height, rect_size.width) * .5); // 存入子弹vector
+            cv::drawContours(  //在lst_msk中绘制轮廓，lst_msk用来给帧差做参考
                 this->lst_msk,
                 contours,
                 i,
@@ -228,17 +228,17 @@ cv::Mat DetectBullet::print_bullets() {
 }
 
 std::vector<ImageBullet>
-DetectBullet::process_new_frame(const cv::Mat& new_frame, const Eigen::Quaterniond& q) {
+DetectBullet::process_new_frame(const cv::Mat& new_frame, const Eigen::Quaterniond& q) { // 输入新的图像和当前相机的姿态,返回子弹vector
     tme_total -= (double)clock() / CLOCKS_PER_SEC;
-
+    //更新参数
     this->lst_hsv = this->cur_hsv.clone();
     this->lst_frame = this->cur_frame.clone();
     this->cur_frame = new_frame.clone();
     this->lst_fr_q = this->cur_fr_q;
     this->cur_fr_q = q;
-
+    
     cv::cvtColor(this->cur_frame, this->cur_hsv, cv::COLOR_BGR2HSV);
-
+    // 处理新帧
     if (!this->lst_frame.empty()) {
         this->get_possible();
         this->get_bullets();
