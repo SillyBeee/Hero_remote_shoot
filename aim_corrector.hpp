@@ -28,10 +28,10 @@ struct IdTLatencyAimCorrection {
     Eigen::Vector2d correction;
     static auto invalid() -> IdTLatencyAimCorrection {
         return IdTLatencyAimCorrection { IdTLatencyAimCorrection::INVALID_ID,
-                                         0.,
-                                         0.,
-                                         aimer::AimInfo::idle(),
-                                         Eigen::Vector2d(0., 0.) };
+                                        0.,
+                                        0.,
+                                        aimer::AimInfo::idle(),
+                                        Eigen::Vector2d(0., 0.) };
     }
 };
 

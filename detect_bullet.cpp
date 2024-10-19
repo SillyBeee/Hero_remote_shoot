@@ -219,8 +219,8 @@ void DetectBullet::get_bullets() {
 // 输出标出子弹的图像
 cv::Mat DetectBullet::print_bullets() {
     cv::Mat res = this->cur_frame.clone();
-    for (const ImageBullet& bul: this->bullets) {
-        cv::circle(res, bul.center, bul.radius, cv::Scalar(255, 255, 255));
+    for (const ImageBullet& bul: this->bullets) { // 遍历所有子弹
+        cv::circle(res, bul.center, bul.radius, cv::Scalar(255, 255, 255)); // 在图像上绘制子弹
     }
     // cv::imshow("actual_res", res);
     // cv::waitKey(0);
